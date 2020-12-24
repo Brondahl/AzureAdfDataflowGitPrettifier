@@ -1,0 +1,142 @@
+{
+	"name": "GenericSCDType2_CopiedFromMicrosoftTemplateDataflows",
+	"properties": {
+		"folder": {
+			"name": "GenericSCD"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "GenericDataset",
+						"type": "DatasetReference"
+					},
+					"name": "GenericInput"
+				},
+				{
+					"dataset": {
+						"referenceName": "SqlDimension",
+						"type": "DatasetReference"
+					},
+					"name": "ExistingDimensionTable"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "SqlDimension",
+						"type": "DatasetReference"
+					},
+					"name": "DimensionTableSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "NewAndUpdatedRows"
+				},
+				{
+					"name": "AddHashInput"
+				},
+				{
+					"name": "AddHashExisting"
+				},
+				{
+					"name": "GetMaxSurrogateKey"
+				},
+				{
+					"name": "AddKey"
+				},
+				{
+					"name": "JoinWithMaxSurrogateKey"
+				},
+				{
+					"name": "AddDimensionColumns"
+				},
+				{
+					"name": "FilterForUpdatedValues"
+				},
+				{
+					"name": "UpdateObsolete"
+				},
+				{
+					"name": "DropUnwantedColsInput"
+				},
+				{
+					"name": "UnionAllData"
+				},
+				{
+					"name": "MarkAsUpdate"
+				},
+				{
+					"name": "DropUnwantedColumns"
+				},
+				{
+					"name": "MarkAsInsert"
+				},
+				{
+					"name": "FilterForActive"
+				}
+			],
+			"script": "
+parameters{
+	PrimaryKey as string ('ID'),
+	Columns as string ('Player,Team,Salary')
+}
+source(allowSchemaDrift: true,
+	validateSchema: false) ~> GenericInput
+source(allowSchemaDrift: true,
+	validateSchema: false,
+	isolationLevel: 'READ_UNCOMMITTED',
+	format: 'table') ~> ExistingDimensionTable
+AddHashInput, AddHashExisting exists(AddHashInput@id_hash == AddHashExisting@id_hash
+	&& AddHashInput@columns_hash == AddHashExisting@columns_hash,
+	negate:true,
+	broadcast: 'auto')~> NewAndUpdatedRows
+GenericInput derive(id_hash = md5(byName($PrimaryKey)),
+		columns_hash = md5(byNames(split($Columns,',')))) ~> AddHashInput
+FilterForActive derive(id_hash = md5(byNames(split($PrimaryKey,','))),
+		columns_hash = md5(byNames(split($Columns,',')))) ~> AddHashExisting
+AddHashExisting aggregate(MaxSurrogateKey = max(toInteger(byName('Key')))) ~> GetMaxSurrogateKey
+NewAndUpdatedRows keyGenerate(output(Key as long),
+	startAt: 1L) ~> AddKey
+AddKey, GetMaxSurrogateKey join(Key == MaxSurrogateKey || true(),
+	joinType:'cross',
+	broadcast: 'right')~> JoinWithMaxSurrogateKey
+JoinWithMaxSurrogateKey derive(Key = Key + MaxSurrogateKey,
+		Active = 1,
+		ActiveStartTime = currentUTC(),
+		ActiveEndTime = toTimestamp(toString(null()))) ~> AddDimensionColumns
+AddHashExisting, NewAndUpdatedRows exists(AddHashExisting@id_hash == AddHashInput@id_hash,
+	negate:false,
+	broadcast: 'auto')~> FilterForUpdatedValues
+FilterForUpdatedValues derive(Active = 0,
+		ActiveEndTime = currentUTC()) ~> UpdateObsolete
+AddDimensionColumns select(mapColumn(
+		each(match(!in(['id_hash','columns_hash','MaxSurrogateKey'],name)))
+	),
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DropUnwantedColsInput
+MarkAsInsert, DropUnwantedColumns union(byName: true)~> UnionAllData
+UpdateObsolete alterRow(updateIf(true())) ~> MarkAsUpdate
+MarkAsUpdate select(mapColumn(
+		each(match(!in(['id_hash','columns_hash','MaxSurrogateKey'],name)))
+	),
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DropUnwantedColumns
+DropUnwantedColsInput alterRow(insertIf(true())) ~> MarkAsInsert
+ExistingDimensionTable filter(toInteger(byName('Active')) == 1) ~> FilterForActive
+UnionAllData sink(allowSchemaDrift: true,
+	validateSchema: false,
+	deletable:false,
+	insertable:true,
+	updateable:true,
+	upsertable:false,
+	keys:[($PrimaryKey)],
+	format: 'table',
+	skipDuplicateMapInputs: true,
+	skipDuplicateMapOutputs: true) ~> DimensionTableSink
+"
+		}
+	}
+}

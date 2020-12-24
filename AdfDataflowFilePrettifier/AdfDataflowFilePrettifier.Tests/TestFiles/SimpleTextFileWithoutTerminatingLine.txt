@@ -1,0 +1,1 @@
+﻿Here is some simple text which doesn't have a line-ending on its only line

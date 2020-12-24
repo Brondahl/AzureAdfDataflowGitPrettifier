@@ -1,0 +1,1 @@
+﻿Here is some simple text which ends with a LF newline

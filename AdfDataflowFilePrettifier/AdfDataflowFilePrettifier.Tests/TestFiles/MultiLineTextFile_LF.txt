@@ -1,0 +1,3 @@
+﻿Here is some simple text
+And here is more text
+The lines in this file end in LF

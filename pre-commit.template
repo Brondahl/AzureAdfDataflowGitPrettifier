@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# This file needs to be copied into <repoRoot>/.git/hooks, and named "pre-commit".
+# Other examples and details of the pre-commit hook can be found in the "pre-commit.sample" file, in that folder.
+#
+# Essentially what this script does is look at each file that has been staged, and then
+# check those files for any sign that they have been prettified, and not then re-uglified.
+# 
+# This script will be run any time the user attempts to commit.
+# If it returns non-zero, the commit will be prevented.
+
+set -eu
+
+IFS=$'\n'
+
+for stagedFile in $(git diff --staged --name-only)
+do
+    if [[ -f $stagedFile ]]; then
+        if [[ $stagedFile == *.json ]]; then
+            echo Checking that $stagedFile is suitably ugly.
+            
+            (./dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -verifyIsUgly -fromFile $stagedFile)
+            verificationExitCode=$?
+            
+            if [ "$verificationExitCode" -ne "0" ]; then
+                echo Found file that appears to have been prettified: $stagedFile
+                echo All files should have been re-uglified before committing.
+                echo See ./dataflowGitDiffTool/AdfDataflowFilePrettifier for details of what is detected as a \'prettified\' file.
+                echo Blocking Commit
+                exit 1
+            fi
+        fi
+    fi
+done
+
+exit 0

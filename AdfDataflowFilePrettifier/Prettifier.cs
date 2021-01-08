@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace AdfDataflowFilePrettifier
@@ -42,10 +43,6 @@ namespace AdfDataflowFilePrettifier
             return !FileContainsDataFlow(existingFileContents) || !FileIsCurrentlyPretty(existingFileContents);
         }
 
-
-
-
-
         private static bool FileContainsDataFlow(string fileContents)
         {
             return fileContents.Contains("\"type\": \"MappingDataFlow\",");
@@ -53,7 +50,7 @@ namespace AdfDataflowFilePrettifier
 
         private static bool FileIsCurrentlyPretty(string existingFileContents)
         {
-            return existingFileContents.Contains(InnerMagicIndicatorCharacter) || existingFileContents.Contains(OuterMagicIndicatorCharacter) || existingFileContents.Contains(CRMagicIndicatorCharacter);
+            return existingFileContents.Contains(BlockStartString) || existingFileContents.Contains(BlockEndString);
         }
 
         private static string PrettifyDataflowFile(string fileContentsToPrettify)
@@ -78,36 +75,96 @@ namespace AdfDataflowFilePrettifier
                 );
         }
 
-
-        private const char InnerMagicIndicatorCharacter = '\x05'; // We want to be able to distinguish our 'created' \n characters, etc., from the 'real' ones, so that we can reverse the process later.
-        private const char OuterMagicIndicatorCharacter = '\x06'; // And we also want to do this slightly different at the edges of the script.
-        private const char CRMagicIndicatorCharacter = '\x07';    // Due to limitations of kDiff we want to flag CR (\r) characters separately too.
+        private const string BlockStartString = "\n/// PRETTIFIED SCRIPT START MARKER /// DO NOT ALTER THIS LINE ///\n";
+        private const string BlockEndString = "\n/// PRETTIFIED SCRIPT END MARKER /// DO NOT ALTER THIS LINE ///\n";
 
         private static string PrettifyDataFlowScriptDefinition(string scriptLineToPrettify)
         {
-            var prettierLine = scriptLineToPrettify;
-
-            var markedNewLine = OuterMagicIndicatorCharacter + "\n";
-            prettierLine = prettierLine.Replace("\\r\\n", CRMagicIndicatorCharacter + "\n");
-            prettierLine = prettierLine.Replace("\\r", CRMagicIndicatorCharacter + "\r");
-            prettierLine = prettierLine.Replace("\\n", InnerMagicIndicatorCharacter + "\n");
-            prettierLine = prettierLine.Replace("\\t", InnerMagicIndicatorCharacter + "\t");
-                
-            return markedNewLine + prettierLine + markedNewLine;
+            return BlockStartString + PrettifyString(scriptLineToPrettify) + BlockEndString;
         }
 
         internal static string UglifyTextRepresentingPrettifiedDataFlowFile(string fileContents)
         {
-            var uglierFile = fileContents;
+            var readFromIndex = 0;
+            var uglyFileBuilder = new StringBuilder();
 
-            uglierFile = uglierFile.Replace(OuterMagicIndicatorCharacter + "\n", "");
-            uglierFile = uglierFile.Replace(CRMagicIndicatorCharacter + "\n", "\\r\\n");
-            uglierFile = uglierFile.Replace(CRMagicIndicatorCharacter + "\r", "\\r");
-            uglierFile = uglierFile.Replace(InnerMagicIndicatorCharacter + "\n", "\\n");
-            uglierFile = uglierFile.Replace(InnerMagicIndicatorCharacter + "\t", "\\t");
+            while (true)
+            {
+                var nextBlockIndicies = GetNextBlockIndices(fileContents, readFromIndex);
+                if (nextBlockIndicies == null)
+                {
+                    // No more blocks in the file
+                    uglyFileBuilder.Append(fileContents.Substring(readFromIndex));
+                    break;
+                }
+                var newContentUpToBlockStart = ReadStringBetween(fileContents, readFromIndex, nextBlockIndicies.StartOfBlockStartMarkerIndex);
+                var blockContent = ReadStringBetween(fileContents, nextBlockIndicies.BlockContentStartIndex, nextBlockIndicies.BlockContentEndIndex);
 
-            return uglierFile;
+                uglyFileBuilder.Append(newContentUpToBlockStart);
+                uglyFileBuilder.Append(UglifyString(blockContent));
+
+                readFromIndex = nextBlockIndicies.EndOfBlockEndMarkerIndex;
+            }
+
+            return uglyFileBuilder.ToString();
         }
 
+        private static BlockIndexes GetNextBlockIndices(string str, int readFromIndex)
+        {
+            var startOfBlockStartMarkerIndex = str.IndexOf(BlockStartString, readFromIndex);
+            if (startOfBlockStartMarkerIndex == -1)
+            {
+                return null;
+            }
+            var blockContentStartIndex = startOfBlockStartMarkerIndex + BlockStartString.Length;
+            var blockContentEndIndex = str.IndexOf(BlockEndString, blockContentStartIndex);
+            if (blockContentEndIndex == -1)
+            {
+                throw new Exception("Error uglifying: Cannot find matching end marker for start marker");
+            }
+
+            var endOfBlockEndMarkerIndex = blockContentEndIndex + BlockEndString.Length;
+            return new BlockIndexes {
+                StartOfBlockStartMarkerIndex = startOfBlockStartMarkerIndex,
+                BlockContentStartIndex = blockContentStartIndex,
+                BlockContentEndIndex = blockContentEndIndex,
+                EndOfBlockEndMarkerIndex = endOfBlockEndMarkerIndex
+            };
+        }
+
+        private static string ReadStringBetween(string str, int startIndex, int endIndex)
+        {
+            return str.Substring(startIndex, endIndex - startIndex);
+        }
+
+        private static string PrettifyString(string uglyString)
+        {
+            var prettyierString = uglyString;
+
+            prettyierString = prettyierString.Replace("\\r", "\r");
+            prettyierString = prettyierString.Replace("\\n", "\n");
+            prettyierString = prettyierString.Replace("\\t", "\t");
+
+            return prettyierString;
+        }
+
+        private static string UglifyString(string prettyString)
+        {
+            var uglierString = prettyString;
+
+            uglierString = uglierString.Replace("\r", "\\r");
+            uglierString = uglierString.Replace("\n", "\\n");
+            uglierString = uglierString.Replace("\t", "\\t");
+
+            return uglierString;
+        }
+
+        private class BlockIndexes
+        {
+            public int StartOfBlockStartMarkerIndex { get; set; }
+            public int BlockContentStartIndex { get; set; }
+            public int BlockContentEndIndex { get; set; }
+            public int EndOfBlockEndMarkerIndex { get; set; }
+        }
     }
 }

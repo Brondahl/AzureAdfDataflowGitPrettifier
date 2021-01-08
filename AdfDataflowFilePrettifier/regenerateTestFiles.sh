@@ -1,0 +1,3 @@
+cat AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow1_Ugly.json | ../AdfDataflowFilePrettifier.exe  -prettify -fromStdIn > AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow1_Pretty.txt
+cat AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow2_WithEscapedTextNotInDataflow_Ugly.json | ../AdfDataflowFilePrettifier.exe -prettify -fromStdIn > AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow2_WithEscapedTextNotInDataflow_Pretty.txt
+cat AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow3_WithEscapedCRInDefinition_Ugly.json | ../AdfDataflowFilePrettifier.exe -prettify -fromStdIn > AdfDataflowFilePrettifier.Tests/TestFiles/SampleDataFlow3_WithEscapedCRInDefinition_Pretty.txt

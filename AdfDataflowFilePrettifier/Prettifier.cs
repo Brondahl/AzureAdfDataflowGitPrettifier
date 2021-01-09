@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -85,46 +86,57 @@ namespace AdfDataflowFilePrettifier
 
         internal static string UglifyTextRepresentingPrettifiedDataFlowFile(string fileContents)
         {
-            var readFromIndex = 0;
+            var endOfLastBlock = 0;
             var uglyFileBuilder = new StringBuilder();
 
-            while (true)
+            foreach(var block in GetAllBlockIndices(fileContents))
             {
-                var nextBlockIndicies = GetNextBlockIndices(fileContents, readFromIndex);
-                if (nextBlockIndicies == null)
-                {
-                    // No more blocks in the file
-                    uglyFileBuilder.Append(fileContents.Substring(readFromIndex));
-                    break;
-                }
-                var newContentUpToBlockStart = ReadStringBetween(fileContents, readFromIndex, nextBlockIndicies.StartOfBlockStartMarkerIndex);
-                var blockContent = ReadStringBetween(fileContents, nextBlockIndicies.BlockContentStartIndex, nextBlockIndicies.BlockContentEndIndex);
+                var newContentUpToBlockStart = ReadStringBetween(fileContents, endOfLastBlock, block.StartOfBlockStartMarkerIndex);
+                var blockContent = ReadStringBetween(fileContents, block.BlockContentStartIndex, block.BlockContentEndIndex);
 
                 uglyFileBuilder.Append(newContentUpToBlockStart);
                 uglyFileBuilder.Append(UglifyString(blockContent));
 
-                readFromIndex = nextBlockIndicies.EndOfBlockEndMarkerIndex;
+                endOfLastBlock = block.EndOfBlockEndMarkerIndex;
             }
+
+            // No more blocks in the file, read rest of file into string
+            uglyFileBuilder.Append(fileContents.Substring(endOfLastBlock));
 
             return uglyFileBuilder.ToString();
         }
 
-        private static BlockIndexes GetNextBlockIndices(string str, int readFromIndex)
+        private static IEnumerable<BlockIndices> GetAllBlockIndices(string str)
         {
-            var startOfBlockStartMarkerIndex = str.IndexOf(BlockStartString, readFromIndex);
+            var nextBlockIndicies = GetNextBlockIndices(str, 0);
+            while (nextBlockIndicies != null)
+            {
+                yield return nextBlockIndicies;
+                nextBlockIndicies = GetNextBlockIndices(str, nextBlockIndicies.EndOfBlockEndMarkerIndex);
+            }
+        }
+
+        private static BlockIndices GetNextBlockIndices(string str, int previousBlockEndIndex)
+        {
+            var startOfBlockStartMarkerIndex = str.IndexOf(BlockStartString, previousBlockEndIndex);
+
             if (startOfBlockStartMarkerIndex == -1)
             {
                 return null;
             }
+
             var blockContentStartIndex = startOfBlockStartMarkerIndex + BlockStartString.Length;
             var blockContentEndIndex = str.IndexOf(BlockEndString, blockContentStartIndex);
+
             if (blockContentEndIndex == -1)
             {
                 throw new Exception("Error uglifying: Cannot find matching end marker for start marker");
             }
 
             var endOfBlockEndMarkerIndex = blockContentEndIndex + BlockEndString.Length;
-            return new BlockIndexes {
+
+            return new BlockIndices
+            {
                 StartOfBlockStartMarkerIndex = startOfBlockStartMarkerIndex,
                 BlockContentStartIndex = blockContentStartIndex,
                 BlockContentEndIndex = blockContentEndIndex,
@@ -159,7 +171,7 @@ namespace AdfDataflowFilePrettifier
             return uglierString;
         }
 
-        private class BlockIndexes
+        private class BlockIndices
         {
             public int StartOfBlockStartMarkerIndex { get; set; }
             public int BlockContentStartIndex { get; set; }

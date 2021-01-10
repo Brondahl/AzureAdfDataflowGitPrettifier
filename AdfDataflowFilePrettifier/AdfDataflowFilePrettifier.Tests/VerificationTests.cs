@@ -31,7 +31,7 @@ namespace AdfDataflowFilePrettifier.Tests
         }
 
         [Test,
-         TestCase("SampleDataFlow3_WithEscapedCRInDefinition_InvalidJson.txt")
+         TestCase("SampleDataFlow3_InvalidJson.txt")
         ]
         public void DataflowFileWhichIsInvalidJsonIsNotSafeForCommitting(string fullFileName)
         {

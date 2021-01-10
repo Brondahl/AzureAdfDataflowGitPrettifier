@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -25,7 +27,7 @@ namespace AdfDataflowFilePrettifier
             }
         }
 
-        //See above.
+        // See above.
         public static string UglifyFileTextString(string existingFileContents)
         {
             if (FileContainsDataFlow(existingFileContents) && FileIsCurrentlyPretty(existingFileContents))
@@ -38,10 +40,28 @@ namespace AdfDataflowFilePrettifier
             }
         }
 
-        //See above.
-        public static bool VerifyUgliness(string existingFileContents)
+        // See above.
+        public static bool VerifyFileSafeForCommitting(string existingFileContents)
         {
-            return !FileContainsDataFlow(existingFileContents) || !FileIsCurrentlyPretty(existingFileContents);
+            // Files that don't contain a data flow shouldn't be flagged
+            var fileDoesNotContainDataFlow = !FileContainsDataFlow(existingFileContents);
+
+            var dataFlowFileIsValid = FileIsValidJson(existingFileContents) && !FileIsCurrentlyPretty(existingFileContents);
+
+            return fileDoesNotContainDataFlow || dataFlowFileIsValid;
+        }
+
+        private static bool FileIsValidJson(string fileContents)
+        {
+            try
+            {
+                JObject.Parse(fileContents);
+                return true;
+            }
+            catch (JsonReaderException)
+            {
+                return false;
+            }
         }
 
         private static bool FileContainsDataFlow(string fileContents)
@@ -69,11 +89,11 @@ namespace AdfDataflowFilePrettifier
             var matches = regex.Match(fileContentsToPrettify);
 
             return (
-                //Groups[0] is the match of the whole string.
+                // Groups[0] is the match of the whole string.
                 matches.Groups[1].Value, // preamble
-                matches.Groups[2].Value, // script Definition (NOT including surrounding quote marks)
+                matches.Groups[2].Value, // script definition (NOT including surrounding quote marks)
                 matches.Groups[3].Value  // postamble
-                );
+            );
         }
 
         private const string BlockStartString = "\n/// PRETTIFIED SCRIPT START MARKER /// DO NOT ALTER THIS LINE ///\n";

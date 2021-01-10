@@ -126,7 +126,7 @@ MarkAsUpdate select(mapColumn(
 	skipDuplicateMapInputs: true,
 	skipDuplicateMapOutputs: true) ~> DropUnwantedColumns
 DropUnwantedColsInput alterRow(insertIf(true())) ~> MarkAsInsert
-ExistingDimensionTable filter(toInteger(byName('Active')) == 1 &&
+ExistingDimensionTable filter(toInteger(byName('Active')) == 1 &&[[CRLF]]
 true()) ~> FilterForActive
 UnionAllData sink(allowSchemaDrift: true,
 	validateSchema: false,
@@ -140,5 +140,6 @@ UnionAllData sink(allowSchemaDrift: true,
 	skipDuplicateMapOutputs: true) ~> DimensionTableSink
 /// PRETTIFIED SCRIPT END MARKER /// DO NOT ALTER THIS LINE ///
 "
+		}
 	}
 }

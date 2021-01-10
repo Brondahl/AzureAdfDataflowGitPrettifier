@@ -153,7 +153,7 @@ namespace AdfDataflowFilePrettifier
         {
             var prettyierString = uglyString;
 
-            prettyierString = prettyierString.Replace("\\r", "\r");
+            prettyierString = prettyierString.Replace("\\r", "[[CRLF]]");
             prettyierString = prettyierString.Replace("\\n", "\n");
             prettyierString = prettyierString.Replace("\\t", "\t");
 
@@ -164,6 +164,7 @@ namespace AdfDataflowFilePrettifier
         {
             var uglierString = prettyString;
 
+            uglierString = uglierString.Replace("[[CRLF]]", "\\r");
             uglierString = uglierString.Replace("\r", "\\r");
             uglierString = uglierString.Replace("\n", "\\n");
             uglierString = uglierString.Replace("\t", "\\t");

@@ -57,5 +57,25 @@ namespace AdfDataflowFilePrettifier.Tests
             var uglyOutput = Prettifier.UglifyFileTextString(prettyOutput);
             uglyOutput.Should().Be(originalUglyFileContents);
         }
+
+        /**
+         * See https://github.com/Brondahl/AzureAdfDataflowGitPrettifier/pull/1/files#r554426640
+         * and https://github.com/Brondahl/AzureAdfDataflowGitPrettifier/pull/1/files#r554534909
+         * Unfortunately, when kdiff resolves merges, it doesn't respect existing line endings
+         * So we set it to always use \n. Most (but not all) line endings are \n, but occasionally
+         * \r\n is used (see eg SampleDataFlow3), which ideally need handling without converting to \r\n
+         */
+        [Test,
+         TestCase("SampleDataFlow1"),
+         TestCase("SampleDataFlow2_WithEscapedTextNotInDataflow"),
+         TestCase("SampleDataFlow3_WithEscapedCRInDefinition"),
+        ]
+        public void PrettifyContainsNoWindowsLineEndings(string fileNameSlug)
+        {
+            var originalUglyFileContents = ReadFileContents($"{fileNameSlug}_Ugly.json");
+            var prettyOutput = Prettifier.PrettifyFileTextString(originalUglyFileContents);
+
+            prettyOutput.Should().NotContain("\r\n");
+        }
     }
 }

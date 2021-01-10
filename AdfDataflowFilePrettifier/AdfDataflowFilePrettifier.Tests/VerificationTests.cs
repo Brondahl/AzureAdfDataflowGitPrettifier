@@ -11,10 +11,10 @@ namespace AdfDataflowFilePrettifier.Tests
          TestCase("SampleDataFlow2_WithEscapedTextNotInDataflow"),
          TestCase("SampleDataFlow3_WithEscapedCRInDefinition"),
         ]
-        public void UglyDataflowFilesAreUgly(string fileNameSlug)
+        public void UglyDataflowFilesAreSafeForCommitting(string fileNameSlug)
         {
             var originalUglyFileContents = ReadFileContents($"{fileNameSlug}_Ugly.json");
-            var judgement = Prettifier.VerifyUgliness(originalUglyFileContents);
+            var judgement = Prettifier.VerifyFileSafeForCommitting(originalUglyFileContents);
             judgement.Should().BeTrue();
         }
 
@@ -23,10 +23,20 @@ namespace AdfDataflowFilePrettifier.Tests
          TestCase("SampleDataFlow2_WithEscapedTextNotInDataflow"),
          TestCase("SampleDataFlow3_WithEscapedCRInDefinition"),
         ]
-        public void PrettyDataflowFilesAreNotUgly(string fileNameSlug)
+        public void PrettyDataflowFilesAreNotSafeForCommitting(string fileNameSlug)
         {
             var originalUglyFileContents = ReadFileContents($"{fileNameSlug}_Pretty.txt");
-            var judgement = Prettifier.VerifyUgliness(originalUglyFileContents);
+            var judgement = Prettifier.VerifyFileSafeForCommitting(originalUglyFileContents);
+            judgement.Should().BeFalse();
+        }
+
+        [Test,
+         TestCase("SampleDataFlow3_WithEscapedCRInDefinition_InvalidJson.txt")
+        ]
+        public void DataflowFileWhichIsInvalidJsonIsNotSafeForCommitting(string fullFileName)
+        {
+            var fileContents = ReadFileContents(fullFileName);
+            var judgement = Prettifier.VerifyFileSafeForCommitting(fileContents);
             judgement.Should().BeFalse();
         }
 
@@ -37,10 +47,10 @@ namespace AdfDataflowFilePrettifier.Tests
          TestCase("MultiLineTextFile_CRLF.txt"),
          TestCase("MultiLineTextFile_LF.txt"),
          TestCase("LargeFile.txt")]
-        public void NonDataflowFilesAreUgly(string fullFileName)
+        public void NonDataflowFilesAreSafeForCommitting(string fullFileName)
         {
             var originalUglyFileContents = ReadFileContents(fullFileName);
-            var judgement = Prettifier.VerifyUgliness(originalUglyFileContents);
+            var judgement = Prettifier.VerifyFileSafeForCommitting(originalUglyFileContents);
             judgement.Should().BeTrue();
         }
     }

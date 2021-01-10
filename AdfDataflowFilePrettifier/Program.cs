@@ -43,9 +43,9 @@ namespace AdfDataflowFilePrettifier
             Func<string> getFileContentsFunc = ParseSourceArg(args);
             var fileContents = getFileContentsFunc();
 
-            var isUgly = Prettifier.VerifyUgliness(fileContents);
+            var isFileSafe = Prettifier.VerifyFileSafeForCommitting(fileContents);
 
-            Environment.ExitCode = isUgly ? ExitCode_Success : ExitCode_Failure;
+            Environment.ExitCode = isFileSafe ? ExitCode_Success : ExitCode_Failure;
         }
 
 

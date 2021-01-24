@@ -12,7 +12,7 @@ fi
 
 echo Configuring 'textconv' in local git config and .gitattributes file
 git config diff.dataflowPrettifier.textconv './dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -prettify -fromFile'
-echo '*.json diff=dataflowPrettifier' >> .gitattributes
+echo '**/dataflow/**/*.json diff=dataflowPrettifier' >> .gitattributes
 
 echo Configuring 'kdiff3_with_uglification' as the mergetool
 git config merge.tool kdiff3_with_uglification

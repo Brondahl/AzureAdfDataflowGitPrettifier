@@ -74,7 +74,7 @@ To configure `textconv` (a git setting), you will need to run the following comm
 
 If you want to set the config value globally, feel free, but local-only is probably sufficient.
 These settings are part of the git standard, so any suitably well-implemented git interface should honour it.
-But e.g. VS probably doesn't. Use a properly implemented git interface ¯\_(ツ)_/¯
+But e.g. VS probably doesn't. Use a properly implemented git interface ¯\\_(ツ)_/¯
 
 ### B) & C) Configuring the kdiff mergetool to use this.
 

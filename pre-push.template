@@ -16,7 +16,7 @@ IFS=$'\n'
 for touchedFiles in $(git diff --name-only HEAD origin/master)
 do
     if [[ -f $touchedFiles ]]; then
-        if [[ $touchedFiles == *.json ]]; then
+        if [[ $touchedFiles == *dataflow*.json ]]; then
             echo Checking that $touchedFiles is suitably ugly.
             
             (./dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -verifyIsUgly -fromFile $touchedFiles)

@@ -16,7 +16,7 @@ IFS=$'\n'
 for stagedFile in $(git diff --staged --name-only)
 do
     if [[ -f $stagedFile ]]; then
-        if [[ $stagedFile == *.json ]]; then
+        if [[ $stagedFile == *dataflow*.json ]]; then
             echo Checking that $stagedFile is suitably ugly.
             
             (./dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -verifyIsUgly -fromFile $stagedFile)

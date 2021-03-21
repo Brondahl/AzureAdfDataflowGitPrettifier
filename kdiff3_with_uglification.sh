@@ -33,10 +33,10 @@ echo kdiff3 exited with code: $exitCode
 if [ "$exitCode" -eq "0" ]; then
     echo re-uglifying \'$mergeOutput\'
     # Not just write back to the same file immediate; that would cause deadlocks.
-    ./dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -uglify -fromFile $mergeOutput > $mergeOutput.ugly
-    mv -f -u $mergeOutput.ugly $mergeOutput
+    ./dataflowGitDiffTool/AdfDataflowFilePrettifier.exe -uglify -fromFile "$mergeOutput" > "$mergeOutput.ugly"
+    mv -f -u "$mergeOutput.ugly" "$mergeOutput"
     # Not 'git add -A'. That will stage the temp merge files!
-    git add $mergeOutput
+    git add "$mergeOutput"
 fi
 
 exit $exitCode
